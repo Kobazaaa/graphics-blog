@@ -143,6 +143,7 @@ export default {
   base: '/graphics-blog/',
 
   head: [
+    ['link', { rel: 'icon', type: 'image/png', href: '/graphics-blog/images/logo-dark.png' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     [
@@ -167,6 +168,8 @@ export default {
   appearance: 'dark',
 
   themeConfig: {
+    logo: { dark: '/images/logo-dark.png', light: '/images/logo-light.png' },
+
     // Consumed by the <SeriesIndex /> component on the landing page.
     seriesIndex: series.seriesIndex,
 
