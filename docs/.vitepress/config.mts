@@ -11,6 +11,7 @@ function getTitle(file: string, fallback: string): string {
 }
 
 
+
 /**
  * Every folder in docs/ with an index.md is a series. A numeric folder
  * prefix sets the series' position ("01-math" sorts before
@@ -28,7 +29,7 @@ type SidebarItem = { text: string; link: string; collapsed?: boolean; items?: Si
 function scanSeries() {
   const sidebar: Record<string, unknown> = {}
   const rewrites: Record<string, string> = {}
-  const collected: { slug: string; order: number; group: SidebarItem }[] = []
+  const collected: { slug: string; order: number; group: SidebarItem; chapterCount: number }[] = []
 
   for (const entry of readdirSync(docsRoot, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name.startsWith('.')) continue
@@ -88,6 +89,7 @@ function scanSeries() {
     collected.push({
       slug,
       order,
+      chapterCount: parsed.length, // sub-chapters count too
       group: {
         text: seriesTitle,
         link: `/${slug}/`,
@@ -119,7 +121,15 @@ function scanSeries() {
   // Everywhere else (landing page, about): a flat catalog — series names
   // only, no chapters.
   sidebar['/'] = [{ text: 'All Series', items: nav }]
-  return { sidebar, nav, rewrites }
+
+  // Data for the <SeriesIndex /> component on the landing page.
+  const seriesIndex = collected.map((s) => ({
+    title: s.group.text,
+    link: `/${s.slug}/`,
+    chapters: s.chapterCount,
+  }))
+
+  return { sidebar, nav, rewrites, seriesIndex }
 }
 
 const series = scanSeries()
@@ -157,6 +167,9 @@ export default {
   appearance: 'dark',
 
   themeConfig: {
+    // Consumed by the <SeriesIndex /> component on the landing page.
+    seriesIndex: series.seriesIndex,
+
     search: {
       provider: 'local',
     },

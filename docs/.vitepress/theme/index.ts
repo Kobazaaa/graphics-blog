@@ -1,5 +1,7 @@
 import DefaultTheme from 'vitepress/theme'
+import type { Theme } from 'vitepress'
 import { defineComponent, h, onMounted } from 'vue'
+import SeriesIndex from './SeriesIndex'
 import './custom.css'
 
 const STORAGE_KEY = 'gb-sidebar-width'
@@ -48,4 +50,7 @@ const Layout = defineComponent({
 export default {
   extends: DefaultTheme,
   Layout,
-}
+  enhanceApp({ app }) {
+    app.component('SeriesIndex', SeriesIndex)
+  },
+} satisfies Theme

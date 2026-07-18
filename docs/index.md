@@ -13,9 +13,9 @@ Hi! I'm [Kobe Dereyne](https://kobazaaa.github.io), a game development student s
 
 ## Series
 
-The first series are being written right now:
+<SeriesIndex />
 
-Until then, if you're curious about the projects these notes will grow out of, have a look at my [portfolio](https://kobazaaa.github.io).
+Curious about the projects these notes grow out of? Have a look at my [portfolio](https://kobazaaa.github.io).
 
 ## About
 
