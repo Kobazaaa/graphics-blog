@@ -174,6 +174,36 @@
   color: var(--vp-c-text-1);
 }
 
+/* Main chapters (level-1: "1. …", "2. …") stand apart from their
+   sub-chapters: semibold at full text strength, plus a little air
+   between one chapter block and the next. Scoped to the first group so
+   the "More Reading" links below keep the default look. */
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1 > .item .link > .text {
+  font-weight: 600;
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1:not(.is-active) > .item .link > .text {
+  color: var(--vp-c-text-1);
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1:not(.is-active) > .item .link:hover > .text {
+  color: var(--vp-c-brand-1);
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1 + .VPSidebarItem.level-1 {
+  margin-top: 10px;
+}
+
+/* The series root's collapse caret is repurposed (see setupChapterFold
+   in theme/index.ts) to fold/unfold every main chapter instead of
+   hiding the whole list. Undo the default theme's "hide items when
+   collapsed" behavior for the root specifically, so its own item list
+   (Series Overview + chapter titles) stays visible — only each
+   chapter's own subtree folds. */
+.VPSidebar .group:first-of-type > .VPSidebarItem.level-0.collapsed > .items {
+  display: block !important;
+}
+
 /* Drag handle on the sidebar's right edge (injected by theme/index.ts).
    Tracks --vp-sidebar-width, so it stays glued to the edge mid-drag. */
 .gb-sidebar-resizer {
@@ -337,6 +367,160 @@ body.gb-resizing {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+}
+
+/* ---------- "Coming soon" chapter placeholder ---------- */
+.gb-coming-soon {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+  margin: 2rem 0;
+  padding: 24px 28px;
+  border: 1px dashed var(--vp-c-divider);
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+}
+
+.gb-coming-soon-scene {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  perspective: 400px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+
+.gb-coming-soon-scene:active {
+  cursor: grabbing;
+}
+
+.gb-coming-soon-scene--dragging {
+  transform: scale(1.08);
+}
+
+.gb-coming-soon-shape {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.gb-coming-soon-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -24px;
+  width: 44px;
+  height: 10px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, var(--vp-c-brand-soft) 0%, transparent 72%);
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+.gb-coming-soon-face {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--vp-c-brand-1);
+  background-color: var(--vp-c-brand-soft);
+}
+
+.gb-coming-soon-face--front {
+  transform: translateZ(32px);
+}
+
+.gb-coming-soon-face--back {
+  transform: rotateY(180deg) translateZ(32px);
+}
+
+.gb-coming-soon-face--right {
+  transform: rotateY(90deg) translateZ(32px);
+}
+
+.gb-coming-soon-face--left {
+  transform: rotateY(-90deg) translateZ(32px);
+}
+
+.gb-coming-soon-face--top {
+  transform: rotateX(90deg) translateZ(32px);
+}
+
+.gb-coming-soon-face--bottom {
+  transform: rotateX(-90deg) translateZ(32px);
+}
+
+/* Pyramid: */
+.gb-coming-soon-pyramid-side {
+  position: absolute;
+  top: -26px;
+  left: 0;
+  width: 64px;
+  height: 90px;
+  border: none;
+  background: none;
+  transform-origin: 50% 100%;
+}
+
+.gb-coming-soon-pyramid-side svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gb-coming-soon-pyramid-side polygon {
+  fill: var(--vp-c-brand-soft);
+  stroke: var(--vp-c-brand-1);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Sphere */
+.gb-coming-soon-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--vp-c-brand-1);
+}
+
+.gb-coming-soon-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gb-coming-soon-eyebrow {
+  margin: 0;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+}
+
+.vp-doc .gb-coming-soon-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc .gb-coming-soon-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+
+@media (max-width: 480px) {
+  .gb-coming-soon {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
   }
 }
 

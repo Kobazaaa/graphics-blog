@@ -17,12 +17,12 @@ function getTitle(file: string, fallback: string): string {
  * prefix sets the series' position ("01-math" sorts before
  * "02-rasterization") and is stripped from URLs. Every other .md in the
  * folder is a chapter, ordered by its numeric filename prefix (01-, 02-, …).
- * A "major.minor" prefix (01.1-, 01.2-, …) makes the file a sub-chapter,
- * nested under its chapter in the sidebar as "1.1 Title" (collapsed
- * until you're inside that chapter). Nav dropdown and sidebar are
- * generated from that — new chapters only need a new file, not a config
- * edit. (Dev server picks new files up on restart; builds are always
- * current.)
+ * The prefix's dot-segments set nesting depth to match: "01.2-" is a
+ * sub-chapter nested under chapter 1 ("1.2 Title" in the sidebar),
+ * "01.2.1-" nests under 1.2, and so on — as deep as you want, collapsed
+ * until you're inside that branch. Nav dropdown and sidebar are generated
+ * from all this — new chapters only need a new file, not a config edit.
+ * (Dev server picks new files up on restart; builds are always current.)
  */
 type SidebarItem = { text: string; link: string; collapsed?: boolean; items?: SidebarItem[] }
 
@@ -47,43 +47,43 @@ function scanSeries() {
 
     const seriesTitle = getTitle(join(dir, 'index.md'), entry.name)
 
+    // The filename prefix's dot-segments give its nesting path: "01-" is
+    // [1] (a chapter), "01.2-" is [1, 2] (nested under chapter 1), "01.2.1-"
+    // is [1, 2, 1] (nested under 1.2), and so on to any depth. A file
+    // without a numeric prefix sorts after all numbered ones.
     const parsed = files
       .filter((f) => f !== 'index.md')
       .map((f) => {
-        const m = f.match(/^0*(\d+)(?:\.0*(\d+))?-/)
-        return {
-          major: m ? Number(m[1]) : Number.MAX_SAFE_INTEGER,
-          minor: m?.[2] !== undefined ? Number(m[2]) : null,
-          title: getTitle(join(dir, f), f),
-          link: `/${slug}/${f.replace(/\.md$/, '')}`,
-          file: f,
-        }
+        const m = f.match(/^([\d.]+)-/)
+        const path = m ? m[1].split('.').map((n) => Number(n)) : [Number.MAX_SAFE_INTEGER]
+        return { path, title: getTitle(join(dir, f), f), link: `/${slug}/${f.replace(/\.md$/, '')}`, file: f }
       })
-      .sort(
-        (a, b) => a.major - b.major || (a.minor ?? 0) - (b.minor ?? 0) || a.file.localeCompare(b.file)
-      )
+      .sort((a, b) => {
+        const depth = Math.max(a.path.length, b.path.length)
+        for (let i = 0; i < depth; i++) {
+          const d = (a.path[i] ?? -1) - (b.path[i] ?? -1)
+          if (d) return d
+        }
+        return a.file.localeCompare(b.file)
+      })
 
     const chapters: SidebarItem[] = []
-    const byMajor = new Map<number, SidebarItem>()
+    const byPath = new Map<string, SidebarItem>()
     for (const p of parsed) {
-      if (p.minor === null) {
-        const item: SidebarItem = {
-          text: p.major !== Number.MAX_SAFE_INTEGER ? `${p.major}. ${p.title}` : p.title,
-          link: p.link,
-        }
-        chapters.push(item)
-        byMajor.set(p.major, item)
-      } else {
-        const sub: SidebarItem = { text: `${p.major}.${p.minor} ${p.title}`, link: p.link }
-        const parent = byMajor.get(p.major)
-        if (parent) {
-          parent.items = parent.items ?? []
-          parent.items.push(sub)
-          parent.collapsed = false
-        } else {
-          chapters.push(sub) // sub-chapter without a parent chapter file
-        }
+      const numbered = p.path[0] !== Number.MAX_SAFE_INTEGER
+      const item: SidebarItem = {
+        text: !numbered ? p.title : p.path.length === 1 ? `${p.path[0]}. ${p.title}` : `${p.path.join('.')} ${p.title}`,
+        link: p.link,
       }
+      const parent = p.path.length > 1 ? byPath.get(p.path.slice(0, -1).join('.')) : undefined
+      if (parent) {
+        parent.items = parent.items ?? []
+        parent.items.push(item)
+        parent.collapsed = false
+      } else {
+        chapters.push(item) // top-level chapter, or a sub-chapter with no parent file
+      }
+      if (numbered) byPath.set(p.path.join('.'), item)
     }
 
     collected.push({
