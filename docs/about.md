@@ -7,7 +7,9 @@ next: false
 
 Hi, I'm Kobe Dereyne, a game development student specializing in graphics programming.
 
-If you want to see the projects these notes grew out of, a CPU ray tracer, a dual CPU/GPU rasterizer, and the Pompeii Vulkan renderer, have a look at my [portfolio](https://kobazaaa.github.io).
+These notes are a collection of things I've learned while working on graphics and rendering projects. They mainly serve as my personal reference, but hopefully they're useful to others as well.
+
+If you want to see the projects these notes grew out of, have a look at my [portfolio](https://kobazaaa.github.io).
 
 ## Get in touch
 
