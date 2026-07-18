@@ -1,3 +1,0 @@
-# Interpolation and Curves
-
-<ComingSoon />
