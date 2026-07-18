@@ -203,6 +203,21 @@ body.gb-resizing {
   user-select: none;
 }
 
+/* The default theme hides the footer on any page with a sidebar — and
+   every page here has one (see sidebar['/'] in config.mts). Bring it
+   back, offset to clear the fixed sidebar so its text isn't hidden
+   behind it. */
+.VPFooter.has-sidebar {
+  display: block !important;
+  padding-left: var(--vp-sidebar-width);
+}
+
+@media (max-width: 959px) {
+  .VPFooter.has-sidebar {
+    padding-left: 24px;
+  }
+}
+
 /* ---------- Right outline ("Contents"): slimmer, tucked to the right ---------- */
 .VPDoc .aside {
   max-width: 200px;
