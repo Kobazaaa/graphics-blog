@@ -196,7 +196,6 @@ export default {
     ],
 
     footer: {
-      message: 'Also see my <a href="https://kobazaaa.github.io">portfolio</a>.',
       copyright: 'Copyright © 2026-present Kobe Dereyne',
     },
 
