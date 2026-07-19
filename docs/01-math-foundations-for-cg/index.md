@@ -1,4 +1,4 @@
-# Math Foundations
+# Math Foundations for Computer Graphics
 
 ## Chapters
 

@@ -1,0 +1,98 @@
+/* ---------- Sidebar: a narrower bordered panel, distinct from the page ---------- */
+:root {
+  --vp-sidebar-width: 272px;
+}
+
+.VPSidebar {
+  border-right: 1px solid var(--vp-c-divider);
+}
+
+/* On wide screens VitePress pushes sidebar links inward to line up with
+   the centered layout; keep them pinned to the left edge instead. */
+@media (min-width: 1440px) {
+  .VPSidebar {
+    padding-left: 32px !important;
+    width: var(--vp-sidebar-width) !important;
+  }
+}
+
+/* The series group header links to the overview page, so on that page
+   VitePress paints it in the accent color alongside the "Series
+   Overview" item. Keep the header in plain text: only the actual page
+   entry should light up. */
+.VPSidebar .VPSidebarItem.level-0.is-active > .item .link > .text {
+  color: var(--vp-c-text-1);
+}
+
+/* Main chapters (level-1: "1. …", "2. …") stand apart from their
+   sub-chapters: semibold at full text strength, plus a little air
+   between one chapter block and the next. Scoped to the first group so
+   the "More Reading" links below keep the default look. */
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1 > .item .link > .text {
+  font-weight: 600;
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1:not(.is-active) > .item .link > .text {
+  color: var(--vp-c-text-1);
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1:not(.is-active) > .item .link:hover > .text {
+  color: var(--vp-c-brand-1);
+}
+
+.VPSidebar .group:first-of-type .VPSidebarItem.level-1 + .VPSidebarItem.level-1 {
+  margin-top: 10px;
+}
+
+/* The series root's collapse caret is repurposed (see useChapterFold in
+   theme/composables) to fold/unfold every main chapter instead of hiding
+   the whole list. Undo the default theme's "hide items when collapsed"
+   behavior for the root specifically, so its own item list (Series
+   Overview + chapter titles) stays visible; only each chapter's own
+   subtree folds. */
+.VPSidebar .group:first-of-type > .VPSidebarItem.level-0.collapsed > .items {
+  display: block !important;
+}
+
+/* Drag handle on the sidebar's right edge (injected by useSidebarResize).
+   Tracks --vp-sidebar-width, so it stays glued to the edge mid-drag. */
+.gb-sidebar-resizer {
+  display: none;
+  position: fixed;
+  top: var(--vp-nav-height);
+  bottom: 0;
+  left: calc(var(--vp-sidebar-width) - 3px);
+  width: 6px;
+  cursor: col-resize;
+  z-index: 25;
+}
+
+@media (min-width: 960px) {
+  .gb-sidebar-resizer {
+    display: block;
+  }
+}
+
+.gb-sidebar-resizer:hover,
+body.gb-resizing .gb-sidebar-resizer {
+  background: var(--vp-c-brand-soft);
+}
+
+body.gb-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* The default theme hides the footer on any page with a sidebar, and every
+   page here has one (see sidebar['/'] in config.mts). Bring it back,
+   offset to clear the fixed sidebar so its text isn't hidden behind it. */
+.VPFooter.has-sidebar {
+  display: block !important;
+  padding-left: var(--vp-sidebar-width);
+}
+
+@media (max-width: 959px) {
+  .VPFooter.has-sidebar {
+    padding-left: 24px;
+  }
+}

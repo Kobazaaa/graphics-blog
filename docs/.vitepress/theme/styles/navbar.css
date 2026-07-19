@@ -1,0 +1,111 @@
+/* ---------- Top bar: solid ember with white text (like Vulkan docs' red bar) ---------- */
+:root {
+  --vp-nav-bg-color: #a03c0e;
+}
+
+.dark {
+  --vp-nav-bg-color: #7c2e0c;
+}
+
+/* On sidebar pages VitePress makes the bar transparent at desktop width
+   and only paints the center section, which strands white text on the
+   light page background. Paint the whole bar, always. */
+.VPNavBar,
+.VPNavBar:not(.home) {
+  background-color: var(--vp-nav-bg-color) !important;
+}
+
+.VPNavBarTitle.has-sidebar .title {
+  border-bottom-color: transparent;
+}
+
+/* One straight, full-width strip, identical on every page (Antora lays
+   its bar out this way). VitePress normally offsets the title and
+   content by the sidebar width on doc pages and centers them on others,
+   which makes the search bar jump and breaks the bottom edge. */
+.VPNavBar .container {
+  max-width: 100% !important;
+}
+
+.VPNavBar.has-sidebar .title {
+  position: static !important;
+  width: auto !important;
+  padding: 0 32px !important;
+}
+
+.VPNavBar.has-sidebar .content {
+  padding-left: 24px !important;
+  padding-right: 32px !important;
+}
+
+.VPNavBar .divider {
+  padding-left: 0 !important;
+}
+
+/* Vulkan-docs ordering on desktop: nav links pushed right, search at
+   the end of the bar. (Mobile keeps the default search-left layout.) */
+@media (min-width: 768px) {
+  .VPNavBar .VPNavBarSearch {
+    flex-grow: 0;
+    order: 1;
+    padding-left: 16px;
+  }
+
+  .VPNavBar .VPNavBarAppearance {
+    order: 2;
+  }
+
+  .VPNavBar .VPSocialLinks {
+    order: 3;
+  }
+
+  .VPNavBar .VPNavBarMenu {
+    margin-left: auto;
+  }
+}
+
+.VPNavBar .VPNavBarTitle .title {
+  color: #fff;
+}
+
+.VPNavBar .VPNavBarMenuLink,
+.VPNavBar .VPFlyout .button .text,
+.VPNavBar .VPFlyout .button .vpi-chevron-down {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.VPNavBar .VPNavBarMenuLink:hover,
+.VPNavBar .VPNavBarMenuLink.active,
+.VPNavBar .VPFlyout:hover .button .text {
+  color: #fff;
+}
+
+.VPNavBar .VPSocialLink {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.VPNavBar .VPSocialLink:hover {
+  color: #fff;
+}
+
+.VPNavBar .VPNavBarHamburger .top,
+.VPNavBar .VPNavBarHamburger .middle,
+.VPNavBar .VPNavBarHamburger .bottom {
+  background-color: #fff;
+}
+
+.VPNavBar .DocSearch-Button {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.VPNavBar .DocSearch-Button:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.VPNavBar .DocSearch-Button .DocSearch-Search-Icon {
+  color: #fff;
+}
+
+.VPNavBar .DocSearch-Button-Placeholder {
+  color: rgba(255, 255, 255, 0.8);
+}

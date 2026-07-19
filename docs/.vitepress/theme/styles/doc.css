@@ -1,0 +1,49 @@
+/* ---------- Right outline ("Contents"): slimmer, tucked to the right ---------- */
+.VPDoc .aside {
+  max-width: 200px;
+}
+
+.VPDocAsideOutline .content {
+  font-size: 12.5px;
+}
+
+.VPDoc .aside-container {
+  width: 176px;
+}
+
+/* ---------- Headings: normal weight, h2 underlined (Antora-style) ---------- */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4 {
+  font-weight: 400;
+}
+
+.vp-doc h1 {
+  font-size: 2.1rem;
+}
+
+.vp-doc h2 {
+  border-top: none;
+  border-bottom: 1px solid var(--vp-c-divider);
+  padding: 0 0 0.35rem;
+  margin: 2.4rem 0 1rem;
+}
+
+/* Plex SemiBold for emphasis; full bold is heavy at text sizes. */
+.vp-doc strong {
+  font-weight: 600;
+}
+
+/* ---------- Prose: docs density, 17px, comfortable but not airy ---------- */
+.vp-doc p,
+.vp-doc li {
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+/* ---------- Math blocks: a little breathing room ---------- */
+.vp-doc mjx-container[display='true'] {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
