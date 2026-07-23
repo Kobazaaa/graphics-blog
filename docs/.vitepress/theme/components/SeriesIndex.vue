@@ -11,7 +11,7 @@ const { theme } = useData()
 
 const entries = computed<SeriesEntry[]>(() => theme.value.seriesIndex ?? [])
 
-const chapterLabel = (count: number) => (count === 1 ? '1 chapter' : `${count} chapters`)
+const chapterLabel = (count: number, suffix: string) => (count === 1 ? `1 chapter ${suffix}` : `${count} chapters ${suffix}`)
 </script>
 
 <template>
@@ -19,7 +19,11 @@ const chapterLabel = (count: number) => (count === 1 ? '1 chapter' : `${count} c
     <a v-for="s in entries" :key="s.link" class="gb-series-row" :href="withBase(s.link)">
       <p class="gb-series-title">{{ s.title }}</p>
       <div class="gb-series-meta">
-        <span>{{ chapterLabel(s.chapters) }}</span>
+        <span>{{ chapterLabel(s.finished, 'finished') }}</span>
+        <template v-if="s.chapters - s.finished > 0">
+          <span class="gb-series-dot">·</span>
+          <span>{{ chapterLabel(s.chapters - s.finished, 'in progress') }}</span>
+        </template>
         <span class="gb-series-arrow">→</span>
       </div>
     </a>
@@ -96,6 +100,10 @@ const chapterLabel = (count: number) => (count === 1 ? '1 chapter' : `${count} c
 .vp-doc .gb-series-soon .gb-series-title {
   color: var(--vp-c-text-3);
   font-weight: 400;
+}
+
+.gb-series-dot {
+  opacity: 0.5;
 }
 
 .gb-series-arrow {

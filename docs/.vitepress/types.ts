@@ -18,4 +18,5 @@ export type SeriesEntry = {
   title: string
   link: string
   chapters: number
+  finished: number
 }

@@ -11,6 +11,11 @@ function getTitle(file: string, fallback: string): string {
   return match ? match[1].trim() : fallback
 }
 
+/** A chapter is unfinished if it just shows the <ComingSoon /> placeholder. */
+function isComingSoon(file: string): boolean {
+  return readFileSync(file, 'utf-8').includes('<ComingSoon')
+}
+
 export type ScanResult = {
   sidebar: Record<string, unknown>
   nav: { text: string; link: string }[]
@@ -34,7 +39,7 @@ export type ScanResult = {
 export function scanSeries(): ScanResult {
   const sidebar: Record<string, unknown> = {}
   const rewrites: Record<string, string> = {}
-  const collected: { slug: string; order: number; group: SidebarItem; chapterCount: number }[] = []
+  const collected: { slug: string; order: number; group: SidebarItem; chapterCount: number; finishedCount: number }[] = []
   // Keyed by a page's own relativePath: either a series' "index.md" (whose
   // list is the entire series tree) or a top-level chapter file (whose list
   // is just its own descendants). Consumed by <ChapterIndex />, so both a
@@ -72,7 +77,13 @@ export function scanSeries(): ScanResult {
       .map((f) => {
         const m = f.match(/^([\d.]+)-/)
         const path = m ? m[1].split('.').map((n) => Number(n)) : [Number.MAX_SAFE_INTEGER]
-        return { path, title: getTitle(join(dir, f), f), link: `/${slug}/${f.replace(/\.md$/, '')}`, file: f }
+        return {
+          path,
+          title: getTitle(join(dir, f), f),
+          link: `/${slug}/${f.replace(/\.md$/, '')}`,
+          file: f,
+          comingSoon: isComingSoon(join(dir, f)),
+        }
       })
       .sort((a, b) => {
         const depth = Math.max(a.path.length, b.path.length)
@@ -119,6 +130,7 @@ export function scanSeries(): ScanResult {
       slug,
       order,
       chapterCount: parsed.length, // sub-chapters count too
+      finishedCount: parsed.filter((p) => !p.comingSoon).length,
       group: {
         text: seriesTitle,
         link: `/${slug}/`,
@@ -156,6 +168,7 @@ export function scanSeries(): ScanResult {
     title: s.group.text,
     link: `/${s.slug}/`,
     chapters: s.chapterCount,
+    finished: s.finishedCount,
   }))
 
   // Normalize raw path-lengths into a 0-based depth per list, so the
