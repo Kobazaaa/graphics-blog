@@ -12,24 +12,56 @@ export interface VectorSpec2D {
   labelScale?: number
 }
 
+export interface PointSpec2D {
+  at: [number, number]
+  color?: string
+  label?: string
+  labelOffset?: [number, number]
+  labelScale?: number
+  size?: number
+}
+
 const props = withDefaults(
   defineProps<{
-    vectors: VectorSpec2D[]
+    vectors?: VectorSpec2D[]
+    points?: PointSpec2D[]
     extent?: number
     grid?: boolean
     axes?: boolean
     height?: string
   }>(),
-  { extent: 5, grid: true, axes: true, height: '360px' },
+  { vectors: () => [], points: () => [], extent: 5, grid: true, axes: true, height: '360px' },
 )
 
 const extent = computed(() => {
-  const farthestCoord = props.vectors.reduce((max, spec) => {
-    const points = [spec.to, ...(spec.from ? [spec.from] : [])]
-    return Math.max(max, ...points.flat().map(Math.abs))
+  const vectorCoords = props.vectors.reduce((max, spec) => {
+    const coords = [spec.to, ...(spec.from ? [spec.from] : [])]
+    return Math.max(max, ...coords.flat().map(Math.abs))
   }, 0)
+  const pointCoords = props.points.reduce((max, spec) => Math.max(max, ...spec.at.map(Math.abs)), 0)
+  const farthestCoord = Math.max(vectorCoords, pointCoords)
   return Math.max(props.extent, farthestCoord * 1.15)
 })
+
+const DEFAULT_POINT_COLOR = 'var(--vp-c-brand-1)'
+
+const renderPoints = computed(() =>
+  props.points.map((spec, index) => {
+    const [labelOffsetX, labelOffsetY] = spec.labelOffset ?? [0, 0]
+    return {
+      id: `gb-vector2d-point-${index}`,
+      color: spec.color ?? DEFAULT_POINT_COLOR,
+      label: spec.label,
+      labelScale: spec.labelScale ?? 1,
+      radius: (spec.size ?? 1) * extent.value * 0.012,
+      at: { x: spec.at[0], y: -spec.at[1] },
+      labelAt: {
+        x: spec.at[0] + extent.value * 0.05 + labelOffsetX,
+        y: -(spec.at[1] + extent.value * 0.05 + labelOffsetY),
+      },
+    }
+  }),
+)
 
 const gridExtent = computed(() => Math.ceil(extent.value))
 const viewBox = computed(() => {
@@ -156,6 +188,19 @@ const renderVectors = computed(() =>
           :style="{ fill: v.color, fontSize: `calc(5.5% * ${v.labelScale})` }"
         >
           {{ v.label }}
+        </text>
+      </g>
+
+      <g v-for="p in renderPoints" :key="p.id">
+        <circle :cx="p.at.x" :cy="p.at.y" :r="p.radius" :style="{ fill: p.color }" />
+        <text
+          v-if="p.label"
+          class="gb-vector2d-label"
+          :x="p.labelAt.x"
+          :y="p.labelAt.y"
+          :style="{ fill: p.color, fontSize: `calc(5.5% * ${p.labelScale})` }"
+        >
+          {{ p.label }}
         </text>
       </g>
     </svg>

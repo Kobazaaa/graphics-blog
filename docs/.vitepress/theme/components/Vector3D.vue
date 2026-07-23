@@ -20,15 +20,25 @@ export interface VectorSpec {
   labelScale?: number
 }
 
+export interface PointSpec {
+  at: [number, number, number]
+  color?: string
+  label?: string
+  labelOffset?: [number, number, number]
+  labelScale?: number
+  size?: number
+}
+
 const props = withDefaults(
   defineProps<{
-    vectors: VectorSpec[]
+    vectors?: VectorSpec[]
+    points?: PointSpec[]
     extent?: number
     grid?: boolean
     axes?: boolean
     height?: string
   }>(),
-  { extent: 5, grid: true, axes: true, height: '360px' },
+  { vectors: () => [], points: () => [], extent: 5, grid: true, axes: true, height: '360px' },
 )
 
 // Rendered in a left-handed system: math (x, y, z) maps to scene
@@ -61,12 +71,13 @@ onMounted(() => {
   const el = container.value
   if (!el) return
 
-  const farthestCoord = props.vectors.reduce((max, spec) => {
-    const points = [spec.to, ...(spec.from ? [spec.from] : [])]
-    const localMax = Math.max(...points.flat().map(Math.abs))
+  const farthestVectorCoord = props.vectors.reduce((max, spec) => {
+    const coords = [spec.to, ...(spec.from ? [spec.from] : [])]
+    const localMax = Math.max(...coords.flat().map(Math.abs))
     return Math.max(max, localMax)
   }, 0)
-  const extent = Math.max(props.extent, farthestCoord * 1.15)
+  const farthestPointCoord = props.points.reduce((max, spec) => Math.max(max, ...spec.at.map(Math.abs)), 0)
+  const extent = Math.max(props.extent, farthestVectorCoord * 1.15, farthestPointCoord * 1.15)
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
@@ -87,7 +98,10 @@ onMounted(() => {
   camera.aspect = initialWidth / initialHeight
   camera.updateProjectionMatrix()
 
-  const contentPoints = props.vectors.flatMap((spec) => [toScene(spec.to), toScene(spec.from ?? [0, 0, 0])])
+  const contentPoints = [
+    ...props.vectors.flatMap((spec) => [toScene(spec.to), toScene(spec.from ?? [0, 0, 0])]),
+    ...props.points.map((spec) => toScene(spec.at)),
+  ]
   const bounds = new THREE.Box3()
   if (contentPoints.length) contentPoints.forEach((p) => bounds.expandByPoint(p))
   else bounds.set(new THREE.Vector3(-extent, -extent, -extent), new THREE.Vector3(extent, extent, extent))
@@ -217,6 +231,33 @@ onMounted(() => {
       labelDiv.textContent = spec.label
       const labelObj = new CSS2DObject(labelDiv)
       labelObj.position.copy(to).addScaledVector(dir, extent * 0.06)
+      if (spec.labelOffset) labelObj.position.add(toScene(spec.labelOffset))
+      scene.add(labelObj)
+    }
+  }
+
+  const pointGroup = new THREE.Group()
+  scene.add(pointGroup)
+
+  for (const spec of props.points) {
+    const at = toScene(spec.at)
+    const color = spec.color ? new THREE.Color(spec.color) : brandColor.clone()
+    const radius = (spec.size ?? 1) * extent * 0.02
+
+    const geometry = new THREE.SphereGeometry(radius, 16, 16)
+    const material = new THREE.MeshBasicMaterial({ color })
+    const mesh = new THREE.Mesh(geometry, material)
+    mesh.position.copy(at)
+    pointGroup.add(mesh)
+
+    if (spec.label) {
+      const labelDiv = document.createElement('div')
+      labelDiv.className = 'gb-vector3d-label'
+      labelDiv.style.color = `#${color.getHexString()}`
+      if (spec.labelScale) labelDiv.style.fontSize = `${12.5 * spec.labelScale}px`
+      labelDiv.textContent = spec.label
+      const labelObj = new CSS2DObject(labelDiv)
+      labelObj.position.copy(at)
       if (spec.labelOffset) labelObj.position.add(toScene(spec.labelOffset))
       scene.add(labelObj)
     }
