@@ -58,7 +58,9 @@ onMounted(loadGiscus)
 
 <style scoped>
 .giscus-section {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--vp-c-divider);
 }
 
 .giscus-heading {
