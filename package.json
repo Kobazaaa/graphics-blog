@@ -10,8 +10,12 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "@types/three": "^0.185.1",
     "markdown-it-mathjax3": "^4.3.2",
     "playwright": "^1.61.1",
     "vitepress": "^1.6.3"
+  },
+  "dependencies": {
+    "three": "^0.185.1"
   }
 }

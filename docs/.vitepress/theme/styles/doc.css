@@ -45,5 +45,5 @@
 /* ---------- Math blocks: a little breathing room ---------- */
 .vp-doc mjx-container[display='true'] {
   margin: 1.5rem 0;
-  overflow-x: auto;
+  overflow-x: visible;
 }
