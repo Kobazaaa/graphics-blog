@@ -5,6 +5,7 @@ outline: false
 prev: false
 next: false
 lastUpdated: false
+comments: false
 ---
 
 # Graphics Blog
