@@ -81,6 +81,10 @@ withDefaults(defineProps<{ title?: string }>(), { title: 'Proof' })
   font-size: 15.5px;
 }
 
+.gb-proof-body mjx-container[display='true'] {
+  overflow-x: auto;
+}
+
 .gb-proof-body::after {
   display: block;
   margin-top: 4px;
