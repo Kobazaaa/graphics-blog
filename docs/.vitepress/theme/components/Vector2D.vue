@@ -21,16 +21,30 @@ export interface PointSpec2D {
   size?: number
 }
 
+export interface AngleSpec2D {
+  origin: [number, number]
+  from: [number, number]
+  to: [number, number]
+  radius?: number
+  color?: string
+  label?: string
+  labelOffset?: [number, number]
+  labelScale?: number
+  fill?: boolean | string
+  fillOpacity?: number
+}
+
 const props = withDefaults(
   defineProps<{
     vectors?: VectorSpec2D[]
     points?: PointSpec2D[]
+    angles?: AngleSpec2D[]
     extent?: number
     grid?: boolean
     axes?: boolean
     height?: string
   }>(),
-  { vectors: () => [], points: () => [], extent: 5, grid: true, axes: true, height: '360px' },
+  { vectors: () => [], points: () => [], angles: () => [], extent: 5, grid: true, axes: true, height: '360px' },
 )
 
 const extent = computed(() => {
@@ -39,7 +53,12 @@ const extent = computed(() => {
     return Math.max(max, ...coords.flat().map(Math.abs))
   }, 0)
   const pointCoords = props.points.reduce((max, spec) => Math.max(max, ...spec.at.map(Math.abs)), 0)
-  const farthestCoord = Math.max(vectorCoords, pointCoords)
+  const angleCoords = props.angles.reduce(
+    (max, spec) =>
+      Math.max(max, ...spec.origin.map(Math.abs), ...spec.from.map(Math.abs), ...spec.to.map(Math.abs)),
+    0,
+  )
+  const farthestCoord = Math.max(vectorCoords, pointCoords, angleCoords)
   return Math.max(props.extent, farthestCoord * 1.15)
 })
 
@@ -74,6 +93,81 @@ const gridLines = computed(() => {
   for (let i = -e; i <= e; i++) lines.push(i)
   return lines
 })
+
+const DEFAULT_ANGLE_COLOR = 'var(--vp-c-brand-1)'
+
+function resolveFillColor(fill: boolean | string | undefined, color: string) {
+  if (!fill) return null
+  return fill === true ? color : fill
+}
+
+// Wraps a signed angle (radians) into (-PI, PI], the shortest rotation from 0.
+function normalizeAngle(angle: number) {
+  let a = angle % (2 * Math.PI)
+  if (a > Math.PI) a -= 2 * Math.PI
+  if (a <= -Math.PI) a += 2 * Math.PI
+  return a
+}
+
+const renderAngles = computed(() =>
+  props.angles
+    .map((spec, index) => {
+      const dx1 = spec.from[0] - spec.origin[0]
+      const dy1 = spec.from[1] - spec.origin[1]
+      const dist1 = Math.hypot(dx1, dy1)
+      const dx2 = spec.to[0] - spec.origin[0]
+      const dy2 = spec.to[1] - spec.origin[1]
+      const dist2 = Math.hypot(dx2, dy2)
+      if (dist1 < 1e-6 || dist2 < 1e-6) return null
+
+      const startAngle = Math.atan2(dy1, dx1)
+      const sweep = normalizeAngle(Math.atan2(dy2, dx2) - startAngle)
+      const endAngle = startAngle + sweep
+
+      const radius = spec.radius ?? Math.min(extent.value * 0.25, dist1 * 0.6, dist2 * 0.6)
+      const color = spec.color ?? DEFAULT_ANGLE_COLOR
+      const fillColor = resolveFillColor(spec.fill, color)
+
+      const origin = { x: spec.origin[0], y: -spec.origin[1] }
+      const p0 = {
+        x: spec.origin[0] + radius * Math.cos(startAngle),
+        y: -(spec.origin[1] + radius * Math.sin(startAngle)),
+      }
+      const p1 = {
+        x: spec.origin[0] + radius * Math.cos(endAngle),
+        y: -(spec.origin[1] + radius * Math.sin(endAngle)),
+      }
+
+      // sweep is normalized to (-PI, PI], so the arc is never the reflex one.
+      const sweepFlag = sweep >= 0 ? 0 : 1
+
+      const arcPath = `M ${p0.x} ${p0.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${p1.x} ${p1.y}`
+      const fillPath = fillColor
+        ? `M ${origin.x} ${origin.y} L ${p0.x} ${p0.y} A ${radius} ${radius} 0 0 ${sweepFlag} ${p1.x} ${p1.y} Z`
+        : null
+
+      const midAngle = startAngle + sweep / 2
+      const [labelOffsetX, labelOffsetY] = spec.labelOffset ?? [0, 0]
+      const labelRadius = radius + extent.value * 0.08
+      const labelAt = {
+        x: spec.origin[0] + labelRadius * Math.cos(midAngle) + labelOffsetX,
+        y: -(spec.origin[1] + labelRadius * Math.sin(midAngle) + labelOffsetY),
+      }
+
+      return {
+        id: `gb-vector2d-angle-${index}`,
+        color,
+        fillColor,
+        fillOpacity: spec.fillOpacity ?? 0.15,
+        arcPath,
+        fillPath,
+        label: spec.label,
+        labelScale: spec.labelScale ?? 1,
+        labelAt,
+      }
+    })
+    .filter((a): a is NonNullable<typeof a> => a !== null),
+)
 
 const DEFAULT_COLOR = 'var(--vp-c-brand-1)'
 
@@ -169,6 +263,14 @@ const renderVectors = computed(() =>
         <text class="gb-vector2d-axis-label" x="0" :y="-gridExtent * 1.05" dx="4">y</text>
       </template>
 
+      <path
+        v-for="a in renderAngles.filter((a) => a.fillPath)"
+        :key="`${a.id}-fill`"
+        :d="a.fillPath!"
+        stroke="none"
+        :style="{ fill: a.fillColor!, fillOpacity: a.fillOpacity }"
+      />
+
       <g v-for="v in renderVectors" :key="v.id">
         <line
           :x1="v.from.x"
@@ -201,6 +303,19 @@ const renderVectors = computed(() =>
           :style="{ fill: p.color, fontSize: `calc(5.5% * ${p.labelScale})` }"
         >
           {{ p.label }}
+        </text>
+      </g>
+
+      <g v-for="a in renderAngles" :key="a.id">
+        <path :d="a.arcPath" class="gb-vector2d-arc" :style="{ stroke: a.color }" />
+        <text
+          v-if="a.label"
+          class="gb-vector2d-label"
+          :x="a.labelAt.x"
+          :y="a.labelAt.y"
+          :style="{ fill: a.color, fontSize: `calc(5.5% * ${a.labelScale})` }"
+        >
+          {{ a.label }}
         </text>
       </g>
     </svg>
@@ -251,6 +366,11 @@ const renderVectors = computed(() =>
 
 .gb-vector2d-arrow--dashed {
   stroke-dasharray: 3% 2.2%;
+}
+
+.gb-vector2d-arc {
+  stroke-width: 1%;
+  fill: none;
 }
 
 .gb-vector2d-label {

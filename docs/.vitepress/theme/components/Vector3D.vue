@@ -29,22 +29,40 @@ export interface PointSpec {
   size?: number
 }
 
+export interface AngleSpec {
+  origin: [number, number, number]
+  from: [number, number, number]
+  to: [number, number, number]
+  radius?: number
+  color?: string
+  label?: string
+  labelOffset?: [number, number, number]
+  labelScale?: number
+  fill?: boolean | string
+  fillOpacity?: number
+}
+
 const props = withDefaults(
   defineProps<{
     vectors?: VectorSpec[]
     points?: PointSpec[]
+    angles?: AngleSpec[]
     extent?: number
     grid?: boolean
     axes?: boolean
     height?: string
   }>(),
-  { vectors: () => [], points: () => [], extent: 5, grid: true, axes: true, height: '360px' },
+  { vectors: () => [], points: () => [], angles: () => [], extent: 5, grid: true, axes: true, height: '360px' },
 )
 
 // Rendered in a left-handed system: math (x, y, z) maps to scene
 // (x, y, -z), so positive z points away from the default camera.
 function toScene(v: [number, number, number]) {
   return new THREE.Vector3(v[0], v[1], -v[2])
+}
+
+function toSceneVec(v: THREE.Vector3) {
+  return new THREE.Vector3(v.x, v.y, -v.z)
 }
 
 const container = ref<HTMLDivElement | null>(null)
@@ -77,7 +95,16 @@ onMounted(() => {
     return Math.max(max, localMax)
   }, 0)
   const farthestPointCoord = props.points.reduce((max, spec) => Math.max(max, ...spec.at.map(Math.abs)), 0)
-  const extent = Math.max(props.extent, farthestVectorCoord * 1.15, farthestPointCoord * 1.15)
+  const farthestAngleCoord = props.angles.reduce((max, spec) => {
+    const coords = [spec.origin, spec.from, spec.to]
+    return Math.max(max, ...coords.flat().map(Math.abs))
+  }, 0)
+  const extent = Math.max(
+    props.extent,
+    farthestVectorCoord * 1.15,
+    farthestPointCoord * 1.15,
+    farthestAngleCoord * 1.15,
+  )
 
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100)
@@ -101,6 +128,7 @@ onMounted(() => {
   const contentPoints = [
     ...props.vectors.flatMap((spec) => [toScene(spec.to), toScene(spec.from ?? [0, 0, 0])]),
     ...props.points.map((spec) => toScene(spec.at)),
+    ...props.angles.flatMap((spec) => [toScene(spec.origin), toScene(spec.from), toScene(spec.to)]),
   ]
   const bounds = new THREE.Box3()
   if (contentPoints.length) contentPoints.forEach((p) => bounds.expandByPoint(p))
@@ -258,6 +286,84 @@ onMounted(() => {
       labelDiv.textContent = spec.label
       const labelObj = new CSS2DObject(labelDiv)
       labelObj.position.copy(at)
+      if (spec.labelOffset) labelObj.position.add(toScene(spec.labelOffset))
+      scene.add(labelObj)
+    }
+  }
+
+  const angleGroup = new THREE.Group()
+  scene.add(angleGroup)
+
+  for (const spec of props.angles) {
+    const originMath = new THREE.Vector3(...spec.origin)
+    const fromDelta = new THREE.Vector3(...spec.from).sub(originMath)
+    const toDelta = new THREE.Vector3(...spec.to).sub(originMath)
+    const len1 = fromDelta.length()
+    const len2 = toDelta.length()
+    if (len1 < 1e-6 || len2 < 1e-6) continue
+
+    const u = fromDelta.clone().normalize()
+    const d2 = toDelta.clone().normalize()
+    const cosTheta = THREE.MathUtils.clamp(u.dot(d2), -1, 1)
+    const theta = Math.acos(cosTheta)
+    if (theta < 1e-4) continue
+
+    let v = d2.clone().sub(u.clone().multiplyScalar(u.dot(d2)))
+    if (v.lengthSq() < 1e-10) {
+      const helper = Math.abs(u.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0)
+      v = helper.clone().sub(u.clone().multiplyScalar(u.dot(helper)))
+    }
+    v.normalize()
+
+    const radius = spec.radius ?? Math.min(extent * 0.25, len1 * 0.6, len2 * 0.6)
+    const color = spec.color ? new THREE.Color(spec.color) : brandColor.clone()
+    const segments = 48
+
+    const arcPositions: number[] = []
+    for (let i = 0; i <= segments; i++) {
+      const t = (theta * i) / segments
+      const pointMath = originMath.clone().addScaledVector(u, radius * Math.cos(t)).addScaledVector(v, radius * Math.sin(t))
+      const pointScene = toSceneVec(pointMath)
+      arcPositions.push(pointScene.x, pointScene.y, pointScene.z)
+    }
+    const arcGeometry = new LineGeometry().setPositions(arcPositions)
+    const arcMaterial = makeLineMaterial(color, 2.4)
+    const arcLine = new Line2(arcGeometry, arcMaterial)
+    arcLine.computeLineDistances()
+    angleGroup.add(arcLine)
+
+    if (spec.fill) {
+      const fillColor = spec.fill === true ? color.clone() : new THREE.Color(spec.fill)
+      const originScene = toSceneVec(originMath)
+      const vertexPositions = [originScene.x, originScene.y, originScene.z, ...arcPositions]
+      const indices: number[] = []
+      for (let i = 1; i <= segments; i++) indices.push(0, i, i + 1)
+      const fillGeometry = new THREE.BufferGeometry()
+      fillGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertexPositions, 3))
+      fillGeometry.setIndex(indices)
+      const fillMaterial = new THREE.MeshBasicMaterial({
+        color: fillColor,
+        transparent: true,
+        opacity: spec.fillOpacity ?? 0.15,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      })
+      angleGroup.add(new THREE.Mesh(fillGeometry, fillMaterial))
+    }
+
+    if (spec.label) {
+      const midT = theta / 2
+      const midMath = originMath.clone().addScaledVector(u, radius * Math.cos(midT)).addScaledVector(v, radius * Math.sin(midT))
+      const outward = midMath.clone().sub(originMath).normalize()
+      const labelPointMath = midMath.clone().addScaledVector(outward, extent * 0.06)
+
+      const labelDiv = document.createElement('div')
+      labelDiv.className = 'gb-vector3d-label'
+      labelDiv.style.color = `#${color.getHexString()}`
+      if (spec.labelScale) labelDiv.style.fontSize = `${12.5 * spec.labelScale}px`
+      labelDiv.textContent = spec.label
+      const labelObj = new CSS2DObject(labelDiv)
+      labelObj.position.copy(toSceneVec(labelPointMath))
       if (spec.labelOffset) labelObj.position.add(toScene(spec.labelOffset))
       scene.add(labelObj)
     }
