@@ -27,6 +27,7 @@ export interface AngleSpec2D {
   to: [number, number]
   radius?: number
   color?: string
+  dashed?: boolean
   label?: string
   labelOffset?: [number, number]
   labelScale?: number
@@ -157,6 +158,7 @@ const renderAngles = computed(() =>
       return {
         id: `gb-vector2d-angle-${index}`,
         color,
+        dashed: !!spec.dashed,
         fillColor,
         fillOpacity: spec.fillOpacity ?? 0.15,
         arcPath,
@@ -307,7 +309,12 @@ const renderVectors = computed(() =>
       </g>
 
       <g v-for="a in renderAngles" :key="a.id">
-        <path :d="a.arcPath" class="gb-vector2d-arc" :style="{ stroke: a.color }" />
+        <path
+          :d="a.arcPath"
+          class="gb-vector2d-arc"
+          :class="{ 'gb-vector2d-arc--dashed': a.dashed }"
+          :style="{ stroke: a.color }"
+        />
         <text
           v-if="a.label"
           class="gb-vector2d-label"
@@ -371,6 +378,10 @@ const renderVectors = computed(() =>
 .gb-vector2d-arc {
   stroke-width: 1%;
   fill: none;
+}
+
+.gb-vector2d-arc--dashed {
+  stroke-dasharray: 3% 2.2%;
 }
 
 .gb-vector2d-label {

@@ -35,6 +35,7 @@ export interface AngleSpec {
   to: [number, number, number]
   radius?: number
   color?: string
+  dashed?: boolean
   label?: string
   labelOffset?: [number, number, number]
   labelScale?: number
@@ -327,7 +328,7 @@ onMounted(() => {
       arcPositions.push(pointScene.x, pointScene.y, pointScene.z)
     }
     const arcGeometry = new LineGeometry().setPositions(arcPositions)
-    const arcMaterial = makeLineMaterial(color, 2.4)
+    const arcMaterial = makeLineMaterial(color, 2.4, 1, !!spec.dashed)
     const arcLine = new Line2(arcGeometry, arcMaterial)
     arcLine.computeLineDistances()
     angleGroup.add(arcLine)
