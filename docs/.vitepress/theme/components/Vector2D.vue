@@ -41,22 +41,39 @@ const props = withDefaults(
     points?: PointSpec2D[]
     angles?: AngleSpec2D[]
     extent?: number
+    center?: [number, number]
     grid?: boolean
     axes?: boolean
     height?: string
   }>(),
-  { vectors: () => [], points: () => [], angles: () => [], extent: 5, grid: true, axes: true, height: '360px' },
+  {
+    vectors: () => [],
+    points: () => [],
+    angles: () => [],
+    extent: 5,
+    center: () => [0, 0],
+    grid: true,
+    axes: true,
+    height: '360px',
+  },
 )
+
+// Farthest distance any content point sits from `center`, per axis, so auto-scaling
+// crops tightly around wherever the view is centered instead of always around the origin.
+function distFromCenter([x, y]: [number, number]) {
+  const [cx, cy] = props.center
+  return Math.max(Math.abs(x - cx), Math.abs(y - cy))
+}
 
 const extent = computed(() => {
   const vectorCoords = props.vectors.reduce((max, spec) => {
     const coords = [spec.to, ...(spec.from ? [spec.from] : [])]
-    return Math.max(max, ...coords.flat().map(Math.abs))
+    return Math.max(max, ...coords.map(distFromCenter))
   }, 0)
-  const pointCoords = props.points.reduce((max, spec) => Math.max(max, ...spec.at.map(Math.abs)), 0)
+  const pointCoords = props.points.reduce((max, spec) => Math.max(max, distFromCenter(spec.at)), 0)
   const angleCoords = props.angles.reduce(
     (max, spec) =>
-      Math.max(max, ...spec.origin.map(Math.abs), ...spec.from.map(Math.abs), ...spec.to.map(Math.abs)),
+      Math.max(max, distFromCenter(spec.origin), distFromCenter(spec.from), distFromCenter(spec.to)),
     0,
   )
   const farthestCoord = Math.max(vectorCoords, pointCoords, angleCoords)
@@ -86,7 +103,8 @@ const renderPoints = computed(() =>
 const gridExtent = computed(() => Math.ceil(extent.value))
 const viewBox = computed(() => {
   const e = gridExtent.value
-  return `${-e} ${-e} ${e * 2} ${e * 2}`
+  const [cx, cy] = props.center
+  return `${cx - e} ${-cy - e} ${e * 2} ${e * 2}`
 })
 const gridLines = computed(() => {
   const e = gridExtent.value
